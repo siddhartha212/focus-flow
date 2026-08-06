@@ -1,6 +1,7 @@
 import React from "react";
 import { CalendarDays, Inbox, Zap, BarChart3, Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export type TabType = "today" | "capture" | "habits" | "review" | "someday";
 
@@ -15,17 +16,19 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   onChangeTab,
   unreadCapturesCount = 0,
 }) => {
+  const { t } = useLanguage();
+
   const tabs = [
-    { id: "today" as TabType, label: "Today", icon: CalendarDays },
+    { id: "today" as TabType, label: t("today"), icon: CalendarDays },
     {
       id: "capture" as TabType,
-      label: "Capture",
+      label: t("capture"),
       icon: Inbox,
       badge: unreadCapturesCount > 0 ? unreadCapturesCount : undefined,
     },
-    { id: "habits" as TabType, label: "Habits", icon: Zap },
-    { id: "review" as TabType, label: "Review", icon: BarChart3 },
-    { id: "someday" as TabType, label: "Someday", icon: Bookmark },
+    { id: "habits" as TabType, label: t("habits"), icon: Zap },
+    { id: "review" as TabType, label: t("review"), icon: BarChart3 },
+    { id: "someday" as TabType, label: t("someday"), icon: Bookmark },
   ];
 
   return (

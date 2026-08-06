@@ -33,6 +33,7 @@ import {
 import { showSuccess } from "@/utils/toast";
 import { getNepaliDateString } from "@/utils/nepaliDate";
 import { FocusTimerModal } from "./FocusTimerModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface TodayPlannerProps {
   tasks: Task[];
@@ -41,7 +42,7 @@ interface TodayPlannerProps {
   onDeleteTask: (id: string) => void;
 }
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM (23:00)
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
 
 export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   tasks,
@@ -49,6 +50,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   onUpdateTask,
   onDeleteTask,
 }) => {
+  const { t } = useLanguage();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -93,7 +95,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
     setNewTitle("");
     setNewStartTime("none");
     setIsAddOpen(false);
-    showSuccess("Task added to plan");
+    showSuccess("Task added");
   };
 
   const handleToggleTask = (task: Task) => {
@@ -114,7 +116,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
       startTime: hourStr,
       endTime,
     });
-    showSuccess(`Scheduled for ${hourStr}`);
+    showSuccess(`${hourStr}`);
   };
 
   return (
@@ -148,7 +150,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
               onClick={handleTodayClick}
               className="text-xs h-8 px-2.5 rounded-full"
             >
-              Today
+              {t("today")}
             </Button>
           )}
           <Button
@@ -166,7 +168,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
       <div className="bg-muted/40 border rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm">Unscheduled Tasks</h3>
+            <h3 className="font-semibold text-sm">{t("unscheduledTasks")}</h3>
             <Badge variant="secondary" className="rounded-full text-xs">
               {unscheduledTasks.length}
             </Badge>
@@ -180,13 +182,13 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
             }}
             className="h-8 text-xs gap-1 text-primary hover:bg-primary/10"
           >
-            <Plus className="w-3.5 h-3.5" /> Quick Add
+            <Plus className="w-3.5 h-3.5" /> {t("quickAdd")}
           </Button>
         </div>
 
         {unscheduledTasks.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-3 border border-dashed rounded-xl bg-background/50">
-            No unscheduled tasks. All items are time-blocked!
+            {t("allTimeBlocked")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -225,7 +227,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                   >
                     <SelectTrigger className="h-7 text-xs px-2 rounded-lg border-muted">
                       <Clock className="w-3 h-3 mr-1 text-muted-foreground" />
-                      <span>Slot</span>
+                      <span>{t("slot")}</span>
                     </SelectTrigger>
                     <SelectContent>
                       {HOURS.map((h) => {
@@ -261,7 +263,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
       {/* Hourly Timeline */}
       <div className="space-y-1">
         <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="font-semibold text-sm">Hourly Timeline</h3>
+          <h3 className="font-semibold text-sm">{t("hourlyTimeline")}</h3>
           <span className="text-xs text-muted-foreground">6 AM — 11 PM</span>
         </div>
 
@@ -341,7 +343,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                                 onClick={() => setFocusTaskTarget(task)}
                                 className="h-7 text-xs gap-1 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-full"
                               >
-                                <Flame className="w-3.5 h-3.5 fill-amber-500" /> Focus
+                                <Flame className="w-3.5 h-3.5 fill-amber-500" /> {t("focus")}
                               </Button>
                             )}
 
@@ -362,7 +364,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                       onClick={() => handleQuickScheduleSlot(hour)}
                       className="w-full text-left text-xs text-muted-foreground/60 hover:text-primary hover:bg-primary/5 px-3 py-2 rounded-xl border border-dashed border-transparent hover:border-primary/30 transition-all flex items-center gap-1.5"
                     >
-                      <Plus className="w-3.5 h-3.5" /> Schedule task at {timeLabel}
+                      <Plus className="w-3.5 h-3.5" /> {t("scheduleTaskAt")} {timeLabel}
                     </button>
                   )}
                 </div>
@@ -383,15 +385,15 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
+            <DialogTitle>{t("addTaskTitle")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveNewTask} className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground">
-                Task Description
+                {t("taskDescription")}
               </label>
               <Input
-                placeholder="e.g. Finish quarterly report draft"
+                placeholder={t("taskPlaceholder")}
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 autoFocus
@@ -400,17 +402,17 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
 
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground">
-                Time Slot
+                {t("timeSlot")}
               </label>
               <Select
                 value={newStartTime}
                 onValueChange={setNewStartTime}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select hour (or unscheduled)" />
+                  <SelectValue placeholder="Select hour" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Unscheduled (Tray)</SelectItem>
+                  <SelectItem value="none">{t("unscheduledTray")}</SelectItem>
                   {HOURS.map((h) => {
                     const hStr = `${h.toString().padStart(2, "0")}:00`;
                     return (
@@ -433,9 +435,9 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                 variant="outline"
                 onClick={() => setIsAddOpen(false)}
               >
-                Cancel
+                {t("cancel")}
               </Button>
-              <Button type="submit">Add Task</Button>
+              <Button type="submit">{t("add")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
