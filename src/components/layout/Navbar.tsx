@@ -3,6 +3,7 @@ import { Plus, Calendar, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { getNepaliDateString } from "@/utils/nepaliDate";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 interface NavbarProps {
   onQuickCapture: () => void;
@@ -31,12 +32,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onQuickCapture }) => {
               <Calendar className="w-3 h-3 text-primary" />
               <span>{todayFormatted}</span>
               <span className="text-muted-foreground/60">•</span>
-              <span className="text-primary/90 font-semibold">{nepaliDate.formattedNP} ({nepaliDate.bsMonthName} {nepaliDate.bsDay})</span>
+              <span className="text-primary/90 font-semibold">
+                {nepaliDate.formattedNP} ({nepaliDate.bsMonthName} {nepaliDate.bsDay})
+              </span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
+
           <Button
             onClick={onQuickCapture}
             size="sm"
