@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Task,
   Capture,
+  CaptureMedia,
   Habit,
   HabitLog,
   SomedayItem,
@@ -34,7 +35,6 @@ import { HabitTracker } from "@/components/habits/HabitTracker";
 import { WeeklyReview } from "@/components/review/WeeklyReview";
 import { SomedayList } from "@/components/someday/SomedayList";
 import { format } from "date-fns";
-import { showSuccess } from "@/utils/toast";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>("today");
@@ -112,11 +112,12 @@ const Index = () => {
   };
 
   // --- Capture Handlers ---
-  const handleAddCapture = (text: string, tag: string) => {
+  const handleAddCapture = (text: string, tag: string, media?: CaptureMedia) => {
     const newCap: Capture = {
       id: `cap-${Date.now()}`,
       text,
       tag,
+      media,
       createdAt: new Date().toISOString(),
       archived: false,
     };

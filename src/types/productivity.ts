@@ -8,6 +8,12 @@ export type Task = {
   createdAt: string;
 };
 
+export type CaptureMedia = {
+  type: 'photo' | 'video';
+  url: string; // Object URL or Base64 string
+  name?: string;
+};
+
 export type Capture = {
   id: string;
   text: string;
@@ -15,6 +21,7 @@ export type Capture = {
   createdAt: string; // ISO string
   convertedToTaskId?: string;
   archived: boolean;
+  media?: CaptureMedia;
 };
 
 export type Habit = {

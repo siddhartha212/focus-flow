@@ -1,7 +1,8 @@
 import React from "react";
-import { Sparkles, Plus, Calendar, CheckCircle2 } from "lucide-react";
+import { Plus, Calendar, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { getNepaliDateString } from "@/utils/nepaliDate";
 
 interface NavbarProps {
   onQuickCapture: () => void;
@@ -9,7 +10,8 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onQuickCapture }) => {
-  const todayFormatted = format(new Date(), "EEEE, MMM d");
+  const todayFormatted = format(new Date(), "EEEE, MMM d, yyyy");
+  const nepaliDate = getNepaliDateString(new Date());
 
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background/80 backdrop-blur-md px-4 py-3 transition-colors">
@@ -25,9 +27,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onQuickCapture }) => {
                 Hub
               </span>
             </h1>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-              <Calendar className="w-3 h-3 inline" /> {todayFormatted}
-            </p>
+            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5 font-medium">
+              <Calendar className="w-3 h-3 text-primary" />
+              <span>{todayFormatted}</span>
+              <span className="text-muted-foreground/60">•</span>
+              <span className="text-primary/90 font-semibold">{nepaliDate.formattedNP} ({nepaliDate.bsMonthName} {nepaliDate.bsDay})</span>
+            </div>
           </div>
         </div>
 
@@ -35,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onQuickCapture }) => {
           <Button
             onClick={onQuickCapture}
             size="sm"
-            className="rounded-full gap-1.5 shadow-sm font-medium hover:scale-105 transition-transform"
+            className="rounded-full gap-1.5 shadow-sm font-medium hover:scale-105 transition-transform text-xs"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Quick Capture</span>

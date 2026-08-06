@@ -9,9 +9,8 @@ import {
   Circle,
   Trash2,
   Calendar as CalendarIcon,
-  GripVertical,
 } from "lucide-react";
-import { format, addDays, subDays, parseISO } from "date-fns";
+import { format, addDays, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess } from "@/utils/toast";
+import { getNepaliDateString } from "@/utils/nepaliDate";
 
 interface TodayPlannerProps {
   tasks: Task[];
@@ -51,10 +51,10 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStartTime, setNewStartTime] = useState<string>("none");
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
   const isToday = format(new Date(), "yyyy-MM-dd") === selectedDateStr;
+  const nepaliDate = getNepaliDateString(selectedDate);
 
   const daysTasks = tasks.filter((t) => t.date === selectedDateStr);
   const unscheduledTasks = daysTasks.filter((t) => !t.startTime);
@@ -120,7 +120,7 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
           variant="ghost"
           size="icon"
           onClick={handlePrevDay}
-          className="rounded-full"
+          className="rounded-full shrink-0"
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
@@ -128,14 +128,14 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
         <div className="text-center cursor-pointer" onClick={handleTodayClick}>
           <div className="text-sm font-semibold flex items-center justify-center gap-1.5">
             <CalendarIcon className="w-4 h-4 text-primary" />
-            {format(selectedDate, "EEEE, MMMM d")}
+            {format(selectedDate, "EEEE, MMMM d, yyyy")}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {isToday ? "Today" : format(selectedDate, "yyyy")}
+          <div className="text-xs text-primary font-medium mt-0.5">
+            {nepaliDate.formattedNP} ({nepaliDate.formattedEN})
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {!isToday && (
             <Button
               variant="outline"
@@ -268,7 +268,6 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                 : hour > 12
                 ? `${hour - 12} PM`
                 : `${hour} AM`;
-            const hourStr = `${hour.toString().padStart(2, "0")}:00`;
 
             const tasksInSlot = scheduledTasks.filter((t) => {
               if (!t.startTime) return false;
