@@ -5,13 +5,15 @@ export type Task = {
   startTime?: string; // HH:mm format e.g. "09:00"
   endTime?: string; // HH:mm format e.g. "10:00"
   completed: boolean;
+  priority?: 'low' | 'medium' | 'high';
   createdAt: string;
 };
 
 export type CaptureMedia = {
-  type: 'photo' | 'video';
+  type: 'photo' | 'video' | 'audio';
   url: string; // Object URL or Base64 string
   name?: string;
+  duration?: number;
 };
 
 export type Capture = {

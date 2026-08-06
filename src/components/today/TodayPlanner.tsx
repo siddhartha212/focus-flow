@@ -9,6 +9,7 @@ import {
   Circle,
   Trash2,
   Calendar as CalendarIcon,
+  Flame,
 } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { showSuccess } from "@/utils/toast";
 import { getNepaliDateString } from "@/utils/nepaliDate";
+import { FocusTimerModal } from "./FocusTimerModal";
 
 interface TodayPlannerProps {
   tasks: Task[];
@@ -51,6 +53,9 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStartTime, setNewStartTime] = useState<string>("none");
+
+  // Focus Timer task target
+  const [focusTaskTarget, setFocusTaskTarget] = useState<Task | null>(null);
 
   const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
   const isToday = format(new Date(), "yyyy-MM-dd") === selectedDateStr;
@@ -328,14 +333,27 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
                             </div>
                           </div>
 
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDeleteTask(task.id)}
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {!task.completed && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFocusTaskTarget(task)}
+                                className="h-7 text-xs gap-1 text-amber-500 hover:text-amber-600 hover:bg-amber-500/10 rounded-full"
+                              >
+                                <Flame className="w-3.5 h-3.5 fill-amber-500" /> Focus
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDeleteTask(task.id)}
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))
@@ -353,6 +371,13 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
           })}
         </div>
       </div>
+
+      {/* Focus Timer Modal */}
+      <FocusTimerModal
+        task={focusTaskTarget}
+        onClose={() => setFocusTaskTarget(null)}
+        onCompleteTask={(t) => handleToggleTask({ ...t, completed: true })}
+      />
 
       {/* Add Task Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>

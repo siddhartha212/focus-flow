@@ -11,9 +11,10 @@ import {
   Calendar,
   Camera,
   Video,
+  Mic,
+  Square,
   X,
-  Play,
-  Image as ImageIcon,
+  Volume2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,13 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
   // Attached media state
   const [attachedMedia, setAttachedMedia] = useState<CaptureMedia | undefined>(undefined);
 
+  // Audio Recording State
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTag, setFilterTag] = useState<string>("all");
 
@@ -76,11 +84,14 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
     e.preventDefault();
     if (!inputText.trim() && !attachedMedia) return;
 
-    onAddCapture(
-      inputText.trim() || (attachedMedia?.type === "photo" ? "Photo capture" : "Video capture"),
-      selectedTag,
-      attachedMedia
-    );
+    let defaultText = inputText.trim();
+    if (!defaultText && attachedMedia) {
+      if (attachedMedia.type === "photo") defaultText = "Photo Capture";
+      else if (attachedMedia.type === "video") defaultText = "Video Capture";
+      else if (attachedMedia.type === "audio") defaultText = "Voice Note";
+    }
+
+    onAddCapture(defaultText, selectedTag, attachedMedia);
 
     setInputText("");
     setAttachedMedia(undefined);
@@ -137,6 +148,54 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
     showSuccess("Video attached");
   };
 
+  // Audio recording handlers
+  const startAudioRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAttachedMedia({
+          type: "audio",
+          url: audioUrl,
+          name: "Voice Recording",
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        showSuccess("Voice recording saved");
+      };
+
+      mediaRecorder.start();
+      setIsRecordingAudio(true);
+      setRecordingSeconds(0);
+
+      recordIntervalRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      showError("Microphone access permission required for audio recording.");
+    }
+  };
+
+  const stopAudioRecording = () => {
+    if (mediaRecorderRef.current && isRecordingAudio) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingAudio(false);
+      if (recordIntervalRef.current) {
+        clearInterval(recordIntervalRef.current);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6 pb-24 max-w-2xl mx-auto">
       {/* Hidden File Inputs */}
@@ -163,7 +222,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
           <form onSubmit={handleCaptureSubmit} className="space-y-3">
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Capture thoughts, note, photo, or video..."
+                placeholder="Capture thoughts, note, photo, video, or voice note..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 className="text-base py-5 border-none shadow-none focus-visible:ring-0 px-1"
@@ -179,19 +238,44 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
               </Button>
             </div>
 
+            {/* Live Audio Recording UI Indicator */}
+            {isRecordingAudio && (
+              <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 p-2.5 rounded-xl animate-pulse">
+                <div className="flex items-center gap-2 text-rose-500 text-xs font-semibold">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                  Recording Audio... {recordingSeconds}s
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={stopAudioRecording}
+                  className="h-7 text-xs rounded-lg gap-1"
+                >
+                  <Square className="w-3 h-3 fill-current" /> Stop
+                </Button>
+              </div>
+            )}
+
             {/* Attached Media Preview inside Input Card */}
-            {attachedMedia && (
+            {attachedMedia && !isRecordingAudio && (
               <div className="relative border rounded-xl overflow-hidden bg-muted/30 p-2 flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {attachedMedia.type === "photo" ? (
+                  {attachedMedia.type === "photo" && (
                     <img
                       src={attachedMedia.url}
                       alt="Capture attachment"
                       className="w-12 h-12 object-cover rounded-lg border shrink-0"
                     />
-                  ) : (
+                  )}
+                  {attachedMedia.type === "video" && (
                     <div className="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center shrink-0">
                       <Video className="w-5 h-5 text-indigo-400" />
+                    </div>
+                  )}
+                  {attachedMedia.type === "audio" && (
+                    <div className="w-12 h-12 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                      <Volume2 className="w-5 h-5" />
                     </div>
                   )}
 
@@ -218,7 +302,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             )}
 
             <div className="flex flex-wrap items-center justify-between border-t pt-2.5 gap-2">
-              {/* Media Buttons: Photo & Video Options */}
+              {/* Media Buttons: Photo, Video, Audio */}
               <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
@@ -238,6 +322,18 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                   className="h-8 text-xs gap-1.5 rounded-full"
                 >
                   <Video className="w-3.5 h-3.5 text-rose-500" /> Video
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={isRecordingAudio ? stopAudioRecording : startAudioRecording}
+                  className={`h-8 text-xs gap-1.5 rounded-full ${
+                    isRecordingAudio ? "bg-rose-500 text-white border-rose-500" : ""
+                  }`}
+                >
+                  <Mic className="w-3.5 h-3.5 text-amber-500" /> Voice
                 </Button>
               </div>
 
@@ -330,7 +426,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             <Inbox className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
             <p className="font-semibold text-sm">Inbox is empty</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Capture quick notes, photos, or videos above.
+              Capture quick notes, photos, videos, or voice notes above.
             </p>
           </div>
         ) : (
@@ -354,21 +450,28 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                     </Badge>
                   </div>
 
-                  {/* Render Attached Photo or Video */}
+                  {/* Render Attached Photo, Video, or Audio */}
                   {capture.media && (
-                    <div className="rounded-xl overflow-hidden border bg-black/5 mt-2">
-                      {capture.media.type === "photo" ? (
+                    <div className="rounded-xl overflow-hidden border bg-black/5 mt-2 p-2">
+                      {capture.media.type === "photo" && (
                         <img
                           src={capture.media.url}
                           alt="Captured photo"
-                          className="w-full max-h-64 object-cover"
+                          className="w-full max-h-64 object-cover rounded-lg"
                         />
-                      ) : (
+                      )}
+                      {capture.media.type === "video" && (
                         <video
                           src={capture.media.url}
                           controls
                           className="w-full max-h-64 rounded-xl"
                         />
+                      )}
+                      {capture.media.type === "audio" && (
+                        <div className="flex items-center gap-3 p-2 bg-muted/40 rounded-xl">
+                          <Volume2 className="w-5 h-5 text-amber-500 shrink-0" />
+                          <audio src={capture.media.url} controls className="w-full h-8" />
+                        </div>
                       )}
                     </div>
                   )}
