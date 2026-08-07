@@ -10,6 +10,7 @@ export const translations = {
     habits: "Habits",
     review: "Review",
     someday: "Someday",
+    notes: "Notes",
     quickCapture: "Quick Capture",
     add: "Add",
     save: "Save",
@@ -35,7 +36,7 @@ export const translations = {
     unscheduledTray: "Unscheduled (Tray)",
 
     // Capture Inbox
-    captureInputPlaceholder: "Capture thoughts, note, photo, video, or voice note...",
+    captureInputPlaceholder: "Capture thoughts, photo, video, or voice note...",
     photo: "Photo",
     video: "Video",
     voice: "Voice",
@@ -81,6 +82,15 @@ export const translations = {
     itemTitle: "Item Title",
     category: "Category",
     notesOptional: "Notes / Context (Optional)",
+
+    // Notes
+    notesTitle: "Notes & Ideas",
+    notesSub: "Organize thoughts, meeting logs, and knowledge notes permanently.",
+    newNote: "New Note",
+    noNotes: "No notes found",
+    noNotesSub: "Create your first note to store thoughts permanently.",
+    pinnedNotes: "Pinned Notes",
+    allNotes: "All Notes",
   },
   np: {
     // Nav & Common
@@ -91,6 +101,7 @@ export const translations = {
     habits: "अभ्यास",
     review: "समीक्षा",
     someday: "सोचहरू",
+    notes: "नोटहरू",
     quickCapture: "तत्काल नोट",
     add: "थप्नुहोस्",
     save: "सुरक्षित गर्नुहोस्",
@@ -162,5 +173,14 @@ export const translations = {
     itemTitle: "शीर्षक",
     category: "वर्ग",
     notesOptional: "थप विवरण (ऐच्छिक)",
+
+    // Notes
+    notesTitle: "नोट तथा सोचहरू",
+    notesSub: "तपाईँका मुख्य सोचहरू स्थायी रूपमा सुरक्षित गर्नुहोस्।",
+    newNote: "नयाँ नोट",
+    noNotes: "कुनै नोट भेटिएन",
+    noNotesSub: "स्थायी रूपमा नोटहरू सुरक्षित राख्न नयाँ नोट थप्नुहोस्।",
+    pinnedNotes: "मुख्य नोटहरू",
+    allNotes: "सबै नोटहरू",
   },
 };

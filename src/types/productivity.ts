@@ -11,7 +11,7 @@ export type Task = {
 
 export type CaptureMedia = {
   type: 'photo' | 'video' | 'audio';
-  url: string; // Object URL or Base64 string
+  url: string; // Base64 Data URL or persistent URI
   name?: string;
   duration?: number;
 };
@@ -31,7 +31,7 @@ export type Habit = {
   name: string;
   emoji: string;
   frequencyType: 'daily' | 'weekly';
-  frequencyCount: number; // e.g., 3 for 3x/week, or 1 for daily
+  frequencyCount: number;
   archived: boolean;
   createdAt: string;
 };
@@ -46,7 +46,7 @@ export type HabitLog = {
 export type SomedayItem = {
   id: string;
   title: string;
-  category: string; // e.g. Books, Places, Projects, Ideas
+  category: string;
   note?: string;
   status: 'active' | 'done';
   createdAt: string;
@@ -56,4 +56,15 @@ export type WeeklyNote = {
   id: string;
   weekStartDate: string; // YYYY-MM-DD (Monday)
   noteText: string;
+};
+
+export type Note = {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  pinned?: boolean;
+  color?: string;
+  createdAt: string;
+  updatedAt: string;
 };

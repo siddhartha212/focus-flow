@@ -54,7 +54,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
   const [newTagInput, setNewTagInput] = useState("");
   const [isAddingCustomTag, setIsAddingCustomTag] = useState(false);
 
-  // Attached media state
+  // Attached media state (stores permanent base64 data URL)
   const [attachedMedia, setAttachedMedia] = useState<CaptureMedia | undefined>(undefined);
 
   // Audio Recording State
@@ -107,6 +107,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
     setIsAddingCustomTag(false);
   };
 
+  // Convert File to permanent Base64 string for reliable localStorage persistence
   const handlePhotoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,12 +122,13 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
       if (event.target?.result) {
         setAttachedMedia({
           type: "photo",
-          url: event.target.result as string,
+          url: event.target.result as string, // Permanent Base64 Data URL
           name: file.name,
         });
-        showSuccess("Photo attached");
+        showSuccess("Photo captured & stored!");
       }
     };
+    reader.onerror = () => showError("Failed to process photo file.");
     reader.readAsDataURL(file);
   };
 
@@ -139,16 +141,22 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
       return;
     }
 
-    const url = URL.createObjectURL(file);
-    setAttachedMedia({
-      type: "video",
-      url,
-      name: file.name,
-    });
-    showSuccess("Video attached");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setAttachedMedia({
+          type: "video",
+          url: event.target.result as string, // Permanent Base64 Data URL
+          name: file.name,
+        });
+        showSuccess("Video attached!");
+      }
+    };
+    reader.onerror = () => showError("Failed to process video file.");
+    reader.readAsDataURL(file);
   };
 
-  // Audio recording handlers
+  // Audio recording handlers (converts blob to Base64 on stop)
   const startAudioRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -164,14 +172,19 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
 
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setAttachedMedia({
-          type: "audio",
-          url: audioUrl,
-          name: "Voice Recording",
-        });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (reader.result) {
+            setAttachedMedia({
+              type: "audio",
+              url: reader.result as string, // Base64 URL
+              name: "Voice Recording",
+            });
+            showSuccess("Voice recording saved");
+          }
+        };
+        reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach((track) => track.stop());
-        showSuccess("Voice recording saved");
       };
 
       mediaRecorder.start();
@@ -198,7 +211,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
 
   return (
     <div className="space-y-6 pb-24 max-w-2xl mx-auto">
-      {/* Hidden File Inputs */}
+      {/* Hidden Camera/File Inputs */}
       <input
         type="file"
         ref={imageInputRef}
@@ -222,7 +235,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
           <form onSubmit={handleCaptureSubmit} className="space-y-3">
             <div className="flex items-center gap-2">
               <Input
-                placeholder="Capture thoughts, note, photo, video, or voice note..."
+                placeholder="Capture thoughts, photo, video, or voice note..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 className="text-base py-5 border-none shadow-none focus-visible:ring-0 px-1"
@@ -302,7 +315,6 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
             )}
 
             <div className="flex flex-wrap items-center justify-between border-t pt-2.5 gap-2">
-              {/* Media Buttons: Photo, Video, Audio */}
               <div className="flex items-center gap-1.5">
                 <Button
                   type="button"
@@ -337,7 +349,6 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                 </Button>
               </div>
 
-              {/* Tags Dropdown */}
               <div className="flex items-center gap-2">
                 <TagIcon className="w-3.5 h-3.5 text-muted-foreground" />
                 {isAddingCustomTag ? (
@@ -457,7 +468,7 @@ export const QuickCapture: React.FC<QuickCaptureProps> = ({
                         <img
                           src={capture.media.url}
                           alt="Captured photo"
-                          className="w-full max-h-64 object-cover rounded-lg"
+                          className="w-full max-h-64 object-cover rounded-lg border"
                         />
                       )}
                       {capture.media.type === "video" && (

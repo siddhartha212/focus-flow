@@ -1,5 +1,5 @@
-import { Task, Capture, Habit, HabitLog, SomedayItem, WeeklyNote } from "@/types/productivity";
-import { format, subDays, startOfWeek, addDays } from "date-fns";
+import { Task, Capture, Habit, HabitLog, SomedayItem, WeeklyNote, Note } from "@/types/productivity";
+import { format, subDays, startOfWeek } from "date-fns";
 
 const STORAGE_KEYS = {
   TASKS: 'ff_tasks',
@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   HABIT_LOGS: 'ff_habit_logs',
   SOMEDAY: 'ff_someday',
   WEEKLY_NOTES: 'ff_weekly_notes',
+  NOTES: 'ff_notes',
   TAGS: 'ff_tags',
   CATEGORIES: 'ff_categories',
 };
@@ -54,22 +55,6 @@ export const initializeDataIfEmpty = () => {
         completed: false,
         createdAt: new Date().toISOString(),
       },
-      {
-        id: 't-5',
-        title: 'Update weekly financial budget',
-        date: todayStr,
-        completed: false,
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 't-6',
-        title: 'Read chapter 4 of Designing Data-Intensive Apps',
-        date: yesterdayStr,
-        startTime: '20:00',
-        endTime: '21:00',
-        completed: true,
-        createdAt: subDays(new Date(), 1).toISOString(),
-      },
     ];
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(seedTasks));
   }
@@ -80,18 +65,14 @@ export const initializeDataIfEmpty = () => {
       { id: 'h-2', name: 'Read 20 pages', emoji: '📖', frequencyType: 'daily', frequencyCount: 1, archived: false, createdAt: subDays(new Date(), 45).toISOString() },
       { id: 'h-3', name: '30 min Exercise', emoji: '🏋️‍♂️', frequencyType: 'weekly', frequencyCount: 4, archived: false, createdAt: subDays(new Date(), 30).toISOString() },
       { id: 'h-4', name: '10 min Meditation', emoji: '🧘', frequencyType: 'daily', frequencyCount: 1, archived: false, createdAt: subDays(new Date(), 20).toISOString() },
-      { id: 'h-5', name: 'Zero Afternoon Sugar', emoji: '🥗', frequencyType: 'daily', frequencyCount: 1, archived: false, createdAt: subDays(new Date(), 15).toISOString() },
     ];
     localStorage.setItem(STORAGE_KEYS.HABITS, JSON.stringify(seedHabits));
 
-    // Seed habit logs over the past 30 days
     const seedLogs: HabitLog[] = [];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 30; i++) {
       const logDate = format(subDays(new Date(), i), 'yyyy-MM-dd');
-      // random log entries with higher probability for recent days
       seedHabits.forEach((habit) => {
-        const pass = Math.random() > (i > 20 ? 0.35 : 0.2);
-        if (pass) {
+        if (Math.random() > 0.3) {
           seedLogs.push({
             id: `hl-${habit.id}-${logDate}`,
             habitId: habit.id,
@@ -101,13 +82,6 @@ export const initializeDataIfEmpty = () => {
         }
       });
     }
-    // ensure today has hydration completed
-    seedLogs.push({
-      id: `hl-h-1-${todayStr}`,
-      habitId: 'h-1',
-      date: todayStr,
-      completed: true,
-    });
     localStorage.setItem(STORAGE_KEYS.HABIT_LOGS, JSON.stringify(seedLogs));
   }
 
@@ -115,8 +89,6 @@ export const initializeDataIfEmpty = () => {
     const seedCaptures: Capture[] = [
       { id: 'c-1', text: 'Look into SQLite WAL mode for fast local read performance', tag: 'Tech', createdAt: new Date().toISOString(), archived: false },
       { id: 'c-2', text: 'Gift idea for mom: Handmade ceramics set', tag: 'Personal', createdAt: subDays(new Date(), 1).toISOString(), archived: false },
-      { id: 'c-3', text: 'Try Japanese soufflé pancake recipe this weekend', tag: 'Food', createdAt: subDays(new Date(), 2).toISOString(), archived: false },
-      { id: 'c-4', text: 'Podcast recommendation: The Tim Ferriss Show #712', tag: 'Media', createdAt: subDays(new Date(), 3).toISOString(), archived: false },
     ];
     localStorage.setItem(STORAGE_KEYS.CAPTURES, JSON.stringify(seedCaptures));
   }
@@ -125,11 +97,34 @@ export const initializeDataIfEmpty = () => {
     const seedSomeday: SomedayItem[] = [
       { id: 's-1', title: 'Atomic Habits by James Clear', category: 'Books', note: 'Recommended for habit stacking techniques', status: 'active', createdAt: subDays(new Date(), 10).toISOString() },
       { id: 's-2', title: 'Kyoto, Japan - Fall Foliage Trip', category: 'Places', note: 'Best season is mid November', status: 'active', createdAt: subDays(new Date(), 15).toISOString() },
-      { id: 's-3', title: 'Build a custom Mechanical Keyboard', category: 'Projects', note: 'Gateron Oil Kings switches + GMMK Pro board', status: 'active', createdAt: subDays(new Date(), 20).toISOString() },
-      { id: 's-4', title: 'Learn Basic Spanish for Travel', category: 'Ideas', note: 'Duolingo + 15 min daily Pimsleur audio', status: 'active', createdAt: subDays(new Date(), 25).toISOString() },
-      { id: 's-5', title: 'Dune: Part Two in IMAX', category: 'Media', note: 'Watch on largest cinema screen available', status: 'done', createdAt: subDays(new Date(), 30).toISOString() },
     ];
     localStorage.setItem(STORAGE_KEYS.SOMEDAY, JSON.stringify(seedSomeday));
+  }
+
+  if (!localStorage.getItem(STORAGE_KEYS.NOTES)) {
+    const seedNotes: Note[] = [
+      {
+        id: 'note-1',
+        title: '⚡ FocusFlow Operating Principles',
+        content: '1. Keep tasks time-blocked in focus slots.\n2. Capture thoughts immediately into Inbox before evaluating.\n3. Maintain zero days logic for key daily habits.',
+        category: 'Personal',
+        pinned: true,
+        color: 'emerald',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'note-2',
+        title: '💡 Project Architectural Ideas',
+        content: 'Consider offline-first local storage sync with PWA capabilities. All photos and media should be saved as compressed Base64 strings to guarantee cross-session persistence.',
+        category: 'Work',
+        pinned: false,
+        color: 'blue',
+        createdAt: subDays(new Date(), 1).toISOString(),
+        updatedAt: subDays(new Date(), 1).toISOString(),
+      },
+    ];
+    localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(seedNotes));
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.WEEKLY_NOTES)) {
@@ -137,7 +132,7 @@ export const initializeDataIfEmpty = () => {
       {
         id: 'wn-1',
         weekStartDate: startOfWeekStr,
-        noteText: 'Focus this week is finishing core feature designs and keeping sleep schedule consistent. Good momentum on morning time-blocks.',
+        noteText: 'Focus this week is finishing core feature designs and keeping sleep schedule consistent.',
       },
     ];
     localStorage.setItem(STORAGE_KEYS.WEEKLY_NOTES, JSON.stringify(seedNotes));
@@ -170,6 +165,9 @@ export const saveSomedayItems = (items: SomedayItem[]) => localStorage.setItem(S
 
 export const getWeeklyNotes = (): WeeklyNote[] => JSON.parse(localStorage.getItem(STORAGE_KEYS.WEEKLY_NOTES) || '[]');
 export const saveWeeklyNotes = (notes: WeeklyNote[]) => localStorage.setItem(STORAGE_KEYS.WEEKLY_NOTES, JSON.stringify(notes));
+
+export const getNotes = (): Note[] => JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTES) || '[]');
+export const saveNotes = (notes: Note[]) => localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes));
 
 export const getTags = (): string[] => JSON.parse(localStorage.getItem(STORAGE_KEYS.TAGS) || '[]');
 export const addTag = (tag: string) => {

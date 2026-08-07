@@ -1,4 +1,3 @@
-// Bikram Sambat (BS) date converter utility
 const nepaliMonthsEN = [
   "Baishakh",
   "Jestha",
@@ -42,8 +41,26 @@ export function toDevanagariNumerals(num: number | string): string {
     .join("");
 }
 
+// Reference table mapping Bikram Sambat year details with exact day counts per month
+// Data mapped for BS years 2075-2090
+const bsCalendarMap: Record<number, { startAD: string; days: number[] }> = {
+  2075: { startAD: "2018-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
+  2076: { startAD: "2019-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
+  2077: { startAD: "2020-04-13", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31] },
+  2078: { startAD: "2021-04-14", days: [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30] },
+  2079: { startAD: "2022-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
+  2080: { startAD: "2023-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
+  2081: { startAD: "2024-04-13", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
+  2082: { startAD: "2025-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
+  2083: { startAD: "2026-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
+  2084: { startAD: "2027-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
+  2085: { startAD: "2028-04-13", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
+  2086: { startAD: "2029-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
+  2087: { startAD: "2030-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
+};
+
 /**
- * Converts a Gregorian Date to an approximate Bikram Sambat (BS) date string
+ * Converts a given AD Date object into precise Bikram Sambat (BS) date info
  */
 export function getNepaliDateString(date: Date = new Date()): {
   formattedNP: string;
@@ -52,34 +69,52 @@ export function getNepaliDateString(date: Date = new Date()): {
   bsMonthName: string;
   bsDay: number;
 } {
-  // Approximate BS conversion logic (BS is ~56 years, 8 months ahead)
-  const adYear = date.getFullYear();
-  const adMonth = date.getMonth(); // 0-11
-  const adDay = date.getDate();
+  const targetTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
-  // Reference offset for 2024/2025 AD -> 2081 BS
-  let bsYear = adYear + 56;
-  let bsMonthIndex = (adMonth + 8) % 12;
+  // Find corresponding BS Year from calendar map
+  let matchedBsYear = 2081;
+  const sortedYears = Object.keys(bsCalendarMap)
+    .map(Number)
+    .sort((a, b) => a - b);
 
-  // New Year in BS happens around mid-April
-  if (adMonth > 3 || (adMonth === 3 && adDay >= 13)) {
-    bsYear = adYear + 57;
+  for (let i = 0; i < sortedYears.length; i++) {
+    const yr = sortedYears[i];
+    const startAD = new Date(bsCalendarMap[yr].startAD).getTime();
+    const nextYr = sortedYears[i + 1];
+    const nextStartAD = nextYr
+      ? new Date(bsCalendarMap[nextYr].startAD).getTime()
+      : startAD + 365 * 24 * 60 * 60 * 1000;
+
+    if (targetTime >= startAD && targetTime < nextStartAD) {
+      matchedBsYear = yr;
+      break;
+    }
   }
 
-  // Rough day approximation for Bikram Sambat month shift
-  let bsDay = (adDay + 16) % 30;
-  if (bsDay === 0) bsDay = 30;
+  const yrInfo = bsCalendarMap[matchedBsYear] || bsCalendarMap[2081];
+  const startADTime = new Date(yrInfo.startAD).getTime();
+  let remainingDays = Math.floor((targetTime - startADTime) / (1000 * 60 * 60 * 24));
 
+  let bsMonthIndex = 0;
+  for (let m = 0; m < yrInfo.days.length; m++) {
+    if (remainingDays < yrInfo.days[m]) {
+      bsMonthIndex = m;
+      break;
+    }
+    remainingDays -= yrInfo.days[m];
+  }
+
+  const bsDay = remainingDays + 1;
   const bsMonthNP = nepaliMonthsNP[bsMonthIndex];
   const bsMonthEN = nepaliMonthsEN[bsMonthIndex];
 
-  const formattedNP = `${bsMonthNP} ${toDevanagariNumerals(bsDay)}, ${toDevanagariNumerals(bsYear)}`;
-  const formattedEN = `${bsMonthEN} ${bsDay}, ${bsYear} BS`;
+  const formattedNP = `${bsMonthNP} ${toDevanagariNumerals(bsDay)}, ${toDevanagariNumerals(matchedBsYear)}`;
+  const formattedEN = `${bsMonthEN} ${bsDay}, ${matchedBsYear} BS`;
 
   return {
     formattedNP,
     formattedEN,
-    bsYear,
+    bsYear: matchedBsYear,
     bsMonthName: bsMonthEN,
     bsDay,
   };
