@@ -58,13 +58,29 @@ export type WeeklyNote = {
   noteText: string;
 };
 
+export type NoteType =
+  | 'daily'
+  | 'meeting'
+  | 'journal'
+  | 'idea'
+  | 'study'
+  | 'general';
+
 export type Note = {
   id: string;
   title: string;
   content: string;
   category?: string;
+  noteType?: NoteType;
+  tags?: string[];
   pinned?: boolean;
+  favorite?: boolean;
+  archived?: boolean;
+  deletedAt?: string;
   color?: string;
+  linkedTaskIds?: string[];
+  linkedHabitIds?: string[];
+  linkedCaptureId?: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,121 +1,198 @@
-const nepaliMonthsEN = [
-  "Baishakh",
-  "Jestha",
-  "Ashadh",
-  "Shrawan",
-  "Bhadra",
-  "Ashwin",
-  "Kartik",
-  "Mangsir",
-  "Poush",
-  "Magh",
-  "Falgun",
-  "Chaitra",
-];
+/**
+ * Accurate Bikram Sambat (BS) ↔ Gregorian (AD) date engine.
+ * Powered by nepali-date-pro-max (verified lookup tables, BS 1975–2099).
+ * Future BS years can be added by updating the library — no converter rewrite needed.
+ */
+import {
+  NepaliDate,
+  adToBs,
+  bsToAd,
+  toDevanagariDigits,
+  BS_MONTH_NAMES,
+  BS_MONTH_NAMES_NP,
+  getCalendarMonth,
+  getCalendarDay,
+  eachDayOfInterval,
+  type BsDate,
+  type AdDate,
+  type CalendarMonth,
+  type CalendarDayCell,
+} from "nepali-date-pro-max";
+import { format, parseISO } from "date-fns";
 
-const nepaliMonthsNP = [
-  "वैशाख",
-  "जेठ",
-  "असार",
-  "श्रावण",
-  "भाद्र",
-  "आश्विन",
-  "कार्तिक",
-  "मंसिर",
-  "पुष",
-  "माघ",
-  "फागुन",
-  "चैत",
-];
+export type { BsDate, AdDate, CalendarMonth, CalendarDayCell };
 
-const devanagariDigits = ["०", "१", "२", "३", "४", "५", "६", "७", "८", "९"];
+export const NEPALI_MONTHS_EN = BS_MONTH_NAMES;
+export const NEPALI_MONTHS_NP = BS_MONTH_NAMES_NP;
 
 export function toDevanagariNumerals(num: number | string): string {
-  return num
-    .toString()
-    .split("")
-    .map((char) => {
-      const digit = parseInt(char, 10);
-      return isNaN(digit) ? char : devanagariDigits[digit];
-    })
-    .join("");
+  return toDevanagariDigits(num);
 }
 
-// Reference table mapping Bikram Sambat year details with exact day counts per month
-// Data mapped for BS years 2075-2090
-const bsCalendarMap: Record<number, { startAD: string; days: number[] }> = {
-  2075: { startAD: "2018-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
-  2076: { startAD: "2019-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
-  2077: { startAD: "2020-04-13", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31] },
-  2078: { startAD: "2021-04-14", days: [31, 31, 31, 32, 31, 31, 30, 29, 30, 29, 30, 30] },
-  2079: { startAD: "2022-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
-  2080: { startAD: "2023-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
-  2081: { startAD: "2024-04-13", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
-  2082: { startAD: "2025-04-14", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
-  2083: { startAD: "2026-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
-  2084: { startAD: "2027-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
-  2085: { startAD: "2028-04-13", days: [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30] },
-  2086: { startAD: "2029-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 30] },
-  2087: { startAD: "2030-04-14", days: [31, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 30] },
-};
+/** Convert AD Date → BS date parts */
+export function adDateToBs(date: Date): BsDate {
+  return adToBs(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
 
-/**
- * Converts a given AD Date object into precise Bikram Sambat (BS) date info
- */
-export function getNepaliDateString(date: Date = new Date()): {
+/** Convert BS date → AD Date (local midnight) */
+export function bsDateToAd(bs: BsDate): Date {
+  const ad = bsToAd(bs.year, bs.month, bs.day);
+  return new Date(ad.year, ad.month - 1, ad.day);
+}
+
+/** Format AD date as YYYY-MM-DD */
+export function formatAdDateStr(date: Date): string {
+  return format(date, "yyyy-MM-dd");
+}
+
+/** Parse YYYY-MM-DD to Date */
+export function parseAdDateStr(str: string): Date {
+  return parseISO(str);
+}
+
+export interface NepaliDateDisplay {
   formattedNP: string;
   formattedEN: string;
   bsYear: number;
+  bsMonth: number;
   bsMonthName: string;
+  bsMonthNameNP: string;
   bsDay: number;
-} {
-  const targetTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  adDate: Date;
+}
 
-  // Find corresponding BS Year from calendar map
-  let matchedBsYear = 2081;
-  const sortedYears = Object.keys(bsCalendarMap)
-    .map(Number)
-    .sort((a, b) => a - b);
+/**
+ * Backward-compatible display helper used across the app.
+ */
+export function getNepaliDateString(date: Date = new Date()): NepaliDateDisplay {
+  const bs = adDateToBs(date);
+  const monthIndex = bs.month - 1;
+  const bsMonthEN = NEPALI_MONTHS_EN[monthIndex];
+  const bsMonthNP = NEPALI_MONTHS_NP[monthIndex];
 
-  for (let i = 0; i < sortedYears.length; i++) {
-    const yr = sortedYears[i];
-    const startAD = new Date(bsCalendarMap[yr].startAD).getTime();
-    const nextYr = sortedYears[i + 1];
-    const nextStartAD = nextYr
-      ? new Date(bsCalendarMap[nextYr].startAD).getTime()
-      : startAD + 365 * 24 * 60 * 60 * 1000;
-
-    if (targetTime >= startAD && targetTime < nextStartAD) {
-      matchedBsYear = yr;
-      break;
-    }
-  }
-
-  const yrInfo = bsCalendarMap[matchedBsYear] || bsCalendarMap[2081];
-  const startADTime = new Date(yrInfo.startAD).getTime();
-  let remainingDays = Math.floor((targetTime - startADTime) / (1000 * 60 * 60 * 24));
-
-  let bsMonthIndex = 0;
-  for (let m = 0; m < yrInfo.days.length; m++) {
-    if (remainingDays < yrInfo.days[m]) {
-      bsMonthIndex = m;
-      break;
-    }
-    remainingDays -= yrInfo.days[m];
-  }
-
-  const bsDay = remainingDays + 1;
-  const bsMonthNP = nepaliMonthsNP[bsMonthIndex];
-  const bsMonthEN = nepaliMonthsEN[bsMonthIndex];
-
-  const formattedNP = `${bsMonthNP} ${toDevanagariNumerals(bsDay)}, ${toDevanagariNumerals(matchedBsYear)}`;
-  const formattedEN = `${bsMonthEN} ${bsDay}, ${matchedBsYear} BS`;
+  const formattedNP = `${bsMonthNP} ${toDevanagariNumerals(bs.day)}, ${toDevanagariNumerals(bs.year)}`;
+  const formattedEN = `${bsMonthEN} ${bs.day}, ${bs.year} BS`;
 
   return {
     formattedNP,
     formattedEN,
-    bsYear: matchedBsYear,
+    bsYear: bs.year,
+    bsMonth: bs.month,
     bsMonthName: bsMonthEN,
-    bsDay,
+    bsMonthNameNP: bsMonthNP,
+    bsDay: bs.day,
+    adDate: date,
   };
+}
+
+/** Format a date for display in either calendar system */
+export function formatDualDate(
+  date: Date,
+  system: "AD" | "BS",
+  options: {
+    language?: "en" | "np";
+    numerals?: "english" | "devanagari";
+    includeWeekday?: boolean;
+  } = {}
+): string {
+  const { language = "en", numerals = "english", includeWeekday = false } = options;
+  const useDevanagari = numerals === "devanagari" || language === "np";
+  const nd = NepaliDate.fromJsDate(date);
+  const locale = useDevanagari ? "ne" : "en";
+
+  if (system === "BS") {
+    const pattern = includeWeekday ? "dddd, DD MMMM YYYY" : "DD MMMM YYYY";
+    return nd.locale(locale).format(pattern);
+  }
+
+  const adFmt = includeWeekday ? "EEEE, MMMM d, yyyy" : "MMMM d, yyyy";
+  const adStr = format(date, adFmt);
+  if (useDevanagari) {
+    return adStr.replace(/\d/g, (d) => toDevanagariNumerals(d));
+  }
+  return adStr;
+}
+
+/** Build BS month calendar grid */
+export function getBsCalendarMonth(
+  year: number,
+  month: number,
+  options?: { locale?: "en" | "ne" }
+): CalendarMonth {
+  return getCalendarMonth(year, month, {
+    locale: options?.locale === "ne" ? "ne" : "en",
+    weekStartsOn: 0,
+    padding: true,
+  });
+}
+
+/** Build AD month grid with BS equivalents on each cell */
+export function getAdCalendarMonth(
+  year: number,
+  month: number
+): { date: Date; bs: BsDate; isCurrentMonth: boolean; isToday: boolean }[] {
+  const first = new Date(year, month - 1, 1);
+  const last = new Date(year, month, 0);
+  const startPad = first.getDay();
+  const days: { date: Date; bs: BsDate; isCurrentMonth: boolean; isToday: boolean }[] = [];
+
+  const gridStart = new Date(first);
+  gridStart.setDate(gridStart.getDate() - startPad);
+
+  const todayStr = formatAdDateStr(new Date());
+
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    days.push({
+      date: d,
+      bs: adDateToBs(d),
+      isCurrentMonth: d.getMonth() === month - 1,
+      isToday: formatAdDateStr(d) === todayStr,
+    });
+  }
+  return days;
+}
+
+/** Week days starting from a given AD date (7 days) */
+export function getAdWeekDays(startDate: Date): Date[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    return d;
+  });
+}
+
+/** Week days in BS starting from a BS date */
+export function getBsWeekDays(startBs: BsDate): BsDate[] {
+  const start = NepaliDate.fromBs(startBs.year, startBs.month, startBs.day);
+  const end = start.addDays(6);
+  return eachDayOfInterval({ start, end }).map((d) => d.toBs());
+}
+
+export function getCalendarDayCell(date: Date): CalendarDayCell {
+  return getCalendarDay(NepaliDate.fromJsDate(date));
+}
+
+/** Add/subtract days in AD, always returning a Date */
+export function addAdDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+/** Navigate BS month */
+export function addBsMonths(bs: BsDate, delta: number): BsDate {
+  const nd = NepaliDate.fromBs(bs.year, bs.month, bs.day).addMonths(delta);
+  return nd.toBs();
+}
+
+/** Check if BS date is valid for its month */
+export function isValidBsDate(bs: BsDate): boolean {
+  try {
+    bsToAd(bs.year, bs.month, bs.day);
+    return true;
+  } catch {
+    return false;
+  }
 }

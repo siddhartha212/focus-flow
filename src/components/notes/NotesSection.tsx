@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Note } from "@/types/productivity";
 import {
   FileText,
@@ -7,12 +7,10 @@ import {
   Pin,
   Trash2,
   Edit2,
-  Tag,
   Check,
-  X,
   Calendar,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -28,7 +26,7 @@ import {
 import { showSuccess, showError } from "@/utils/toast";
 
 interface NotesSectionProps {
-  notes: Note[];
+  notes?: Note[];
   onAddNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => void;
   onUpdateNote: (note: Note) => void;
   onDeleteNote: (id: string) => void;
@@ -42,12 +40,26 @@ const COLOR_OPTIONS = [
   { name: "purple", bg: "bg-purple-500/10 dark:bg-purple-950/20", border: "border-purple-500/30" },
 ];
 
+/** Safe date formatter to prevent date-fns from throwing uncaught errors */
+function formatDateSafe(isoString?: string): string {
+  if (!isoString) return format(new Date(), "MMM d, yyyy");
+  try {
+    const parsed = parseISO(isoString);
+    if (!isValid(parsed)) return format(new Date(), "MMM d, yyyy");
+    return format(parsed, "MMM d, yyyy");
+  } catch {
+    return format(new Date(), "MMM d, yyyy");
+  }
+}
+
 export const NotesSection: React.FC<NotesSectionProps> = ({
-  notes,
+  notes = [],
   onAddNote,
   onUpdateNote,
   onDeleteNote,
 }) => {
+  const safeNotes = useMemo(() => (Array.isArray(notes) ? notes : []), [notes]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -60,9 +72,9 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   const [color, setColor] = useState("default");
   const [pinned, setPinned] = useState(false);
 
-  const categories = Array.from(
-    new Set(notes.map((n) => n.category || "General"))
-  );
+  const categories = useMemo(() => {
+    return Array.from(new Set(safeNotes.map((n) => n?.category || "General")));
+  }, [safeNotes]);
 
   const handleOpenCreate = () => {
     setEditingNote(null);
@@ -76,11 +88,11 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
 
   const handleOpenEdit = (note: Note) => {
     setEditingNote(note);
-    setTitle(note.title);
-    setContent(note.content);
-    setCategory(note.category || "General");
-    setColor(note.color || "default");
-    setPinned(!!note.pinned);
+    setTitle(note?.title || "");
+    setContent(note?.content || "");
+    setCategory(note?.category || "General");
+    setColor(note?.color || "default");
+    setPinned(!!note?.pinned);
     setIsDialogOpen(true);
   };
 
@@ -91,6 +103,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
       return;
     }
 
+    const nowISO = new Date().toISOString();
+
     if (editingNote) {
       onUpdateNote({
         ...editingNote,
@@ -99,7 +113,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
         category,
         color,
         pinned,
-        updatedAt: new Date().toISOString(),
+        updatedAt: nowISO,
       });
       showSuccess("Note updated");
     } else {
@@ -116,17 +130,22 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     setIsDialogOpen(false);
   };
 
-  const filteredNotes = notes.filter((n) => {
-    const matchesSearch =
-      n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      n.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat =
-      selectedCategory === "all" || n.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
+  const filteredNotes = useMemo(() => {
+    return safeNotes.filter((n) => {
+      if (!n) return false;
+      const noteTitle = n.title || "";
+      const noteContent = n.content || "";
+      const matchesSearch =
+        noteTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        noteContent.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCat =
+        selectedCategory === "all" || n.category === selectedCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [safeNotes, searchQuery, selectedCategory]);
 
-  const pinnedNotes = filteredNotes.filter((n) => n.pinned);
-  const otherNotes = filteredNotes.filter((n) => !n.pinned);
+  const pinnedNotes = useMemo(() => filteredNotes.filter((n) => n.pinned), [filteredNotes]);
+  const otherNotes = useMemo(() => filteredNotes.filter((n) => !n.pinned), [filteredNotes]);
 
   return (
     <div className="space-y-6 pb-24 max-w-2xl mx-auto">
@@ -350,9 +369,9 @@ const NoteCard: React.FC<NoteCardProps> = ({
   onTogglePin,
 }) => {
   const styleObj =
-    COLOR_OPTIONS.find((c) => c.name === note.color) || COLOR_OPTIONS[0];
+    COLOR_OPTIONS.find((c) => c.name === note?.color) || COLOR_OPTIONS[0];
 
-  const formattedDate = format(parseISO(note.createdAt), "MMM d, yyyy");
+  const formattedDate = formatDateSafe(note?.createdAt);
 
   return (
     <Card
@@ -360,19 +379,19 @@ const NoteCard: React.FC<NoteCardProps> = ({
     >
       <CardContent className="p-4 space-y-2 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h4 className="font-semibold text-sm line-clamp-1">{note.title}</h4>
+          <h4 className="font-semibold text-sm line-clamp-1">{note?.title || "Untitled Note"}</h4>
           <button
             onClick={() => onTogglePin(note)}
             className={`text-muted-foreground hover:text-primary transition-colors shrink-0 ${
-              note.pinned ? "text-primary" : "opacity-0 group-hover:opacity-100"
+              note?.pinned ? "text-primary" : "opacity-0 group-hover:opacity-100"
             }`}
           >
-            <Pin className={`w-3.5 h-3.5 ${note.pinned ? "fill-primary" : ""}`} />
+            <Pin className={`w-3.5 h-3.5 ${note?.pinned ? "fill-primary" : ""}`} />
           </button>
         </div>
 
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4 whitespace-pre-line">
-          {note.content}
+          {note?.content || ""}
         </p>
 
         <div className="pt-3 flex items-center justify-between border-t border-border/50 text-[10px] text-muted-foreground">
@@ -381,7 +400,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
           </span>
 
           <div className="flex items-center gap-1">
-            {note.category && (
+            {note?.category && (
               <Badge variant="secondary" className="text-[10px] rounded-md px-1.5 py-0.5">
                 {note.category}
               </Badge>

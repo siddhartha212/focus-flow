@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Task } from "@/types/productivity";
+import React, { useState, useEffect } from "react";
+import { Task, Note } from "@/types/productivity";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
   Trash2,
   Calendar as CalendarIcon,
   Flame,
+  FileText,
 } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -31,33 +32,45 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { showSuccess } from "@/utils/toast";
-import { getNepaliDateString } from "@/utils/nepaliDate";
+import { formatDualDate, getNepaliDateString } from "@/utils/nepaliDate";
 import { FocusTimerModal } from "./FocusTimerModal";
 import { useLanguage } from "@/context/LanguageContext";
+import { useCalendar } from "@/context/CalendarContext";
+import { DualCalendarView } from "@/components/calendar/DualCalendarView";
 
 interface TodayPlannerProps {
   tasks: Task[];
+  notes?: Note[];
   onAddTask: (task: Omit<Task, "id" | "createdAt">) => void;
   onUpdateTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
+  onOpenNote?: (noteId: string) => void;
+  onDateChange?: (date: Date) => void;
 }
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6 AM to 11 PM
 
 export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   tasks,
+  notes = [],
   onAddTask,
   onUpdateTask,
   onDeleteTask,
+  onOpenNote,
+  onDateChange,
 }) => {
-  const { t } = useLanguage();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const { t, language } = useLanguage();
+  const { defaultCalendar, numeralStyle, selectedDate, setSelectedDate } = useCalendar();
+  const [showCalendar, setShowCalendar] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newStartTime, setNewStartTime] = useState<string>("none");
 
-  // Focus Timer task target
   const [focusTaskTarget, setFocusTaskTarget] = useState<Task | null>(null);
+
+  useEffect(() => {
+    onDateChange?.(selectedDate);
+  }, [selectedDate, onDateChange]);
 
   const selectedDateStr = format(selectedDate, "yyyy-MM-dd");
   const isToday = format(new Date(), "yyyy-MM-dd") === selectedDateStr;
@@ -67,8 +80,8 @@ export const TodayPlanner: React.FC<TodayPlannerProps> = ({
   const unscheduledTasks = daysTasks.filter((t) => !t.startTime);
   const scheduledTasks = daysTasks.filter((t) => !!t.startTime);
 
-  const handlePrevDay = () => setSelectedDate((prev) => subDays(prev, 1));
-  const handleNextDay = () => setSelectedDate((prev) => addDays(prev, 1));
+  const handlePrevDay = () => setSelectedDate(subDays(selectedDate, 1));
+  const handleNextDay = () => setSelectedDate(addDays(selectedDate, 1));
   const handleTodayClick = () => setSelectedDate(new Date());
 
   const handleSaveNewTask = (e: React.FormEvent) => {
