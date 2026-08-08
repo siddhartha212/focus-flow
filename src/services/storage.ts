@@ -177,6 +177,18 @@ export const saveWeeklyNotes = (notes: WeeklyNote[]) => localStorage.setItem(STO
 export const getNotes = (): Note[] => safeParse<Note[]>(STORAGE_KEYS.NOTES, []);
 export const saveNotes = (notes: Note[]) => localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes));
 
+export const trashNote = (notes: Note[], id: string): Note[] => {
+  return notes.map((n) => (n.id === id ? { ...n, deletedAt: new Date().toISOString() } : n));
+};
+
+export const restoreNote = (notes: Note[], id: string): Note[] => {
+  return notes.map((n) => (n.id === id ? { ...n, deletedAt: undefined } : n));
+};
+
+export const permanentlyDeleteNote = (notes: Note[], id: string): Note[] => {
+  return notes.filter((n) => n.id !== id);
+};
+
 export const getTags = (): string[] => safeParse<string[]>(STORAGE_KEYS.TAGS, ['Tech', 'Personal', 'Work']);
 export const addTag = (tag: string) => {
   const current = getTags();
